@@ -219,7 +219,7 @@ export default function ReservationPage() {
     label: formatTime12h(time),
   }))
 
-  const isFormValid = guests && selectedDate && selectedTime
+  const isFormValid = Boolean(guests && selectedDate && selectedTime)
   
   // Get display date
   const displayDate = selectedDate 
@@ -288,12 +288,9 @@ export default function ReservationPage() {
           <Dropdown
             label="Time"
             value={selectedTime}
-            options={[
-              { value: "all", label: "All Day" },
-              ...timeOptions,
-            ]}
+            options={timeOptions}
             onSelect={setSelectedTime}
-            placeholder="All Day"
+            placeholder="시간 선택"
           />
         </div>
 
