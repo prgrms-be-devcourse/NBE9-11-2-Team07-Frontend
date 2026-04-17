@@ -1,6 +1,9 @@
 "use client"
 
+import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { useAuth } from "@/contexts/AuthContext"
 
 // Google Icon Component
 function GoogleIcon({ className }: { className?: string }) {
@@ -27,10 +30,40 @@ function GoogleIcon({ className }: { className?: string }) {
 }
 
 export default function LoginPage() {
+  const router = useRouter()
+  const { login, logout } = useAuth()
+  
+  // Admin login state
+  const [showAdminForm, setShowAdminForm] = useState(false)
+  const [adminId, setAdminId] = useState("")
+  const [adminPw, setAdminPw] = useState("")
+  const [adminError, setAdminError] = useState("")
+
   const handleGoogleSignIn = async () => {
     // TODO: Implement actual sign in with next-auth
     // signIn('google', { callbackUrl: '/mypage' })
     console.log("Google sign in clicked")
+  }
+
+  // Test: Login as user
+  const handleTestUserLogin = () => {
+    login("user")
+    router.push("/mypage")
+  }
+
+  // Test: Logout / stay as guest
+  const handleTestLogout = () => {
+    logout()
+  }
+
+  // Admin login handler
+  const handleAdminLogin = () => {
+    if (adminId === "admin" && adminPw === "admin") {
+      login("admin")
+      router.push("/admin/dashboard")
+    } else {
+      setAdminError("아이디 또는 비밀번호가 올바르지 않습니다.")
+    }
   }
 
   return (
@@ -51,6 +84,69 @@ export default function LoginPage() {
           <GoogleIcon className="size-5" />
           <span>Google 계정으로 계속하기</span>
         </Button>
+
+        {/* Dev Test Buttons */}
+        <div className="space-y-3 border-t border-dashed border-muted-foreground/30 pt-6">
+          <p className="text-center text-xs text-muted-foreground">
+            개발용 테스트 버튼
+          </p>
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={handleTestUserLogin}
+            className="h-12 w-full border-green-500 text-green-600 hover:bg-green-50"
+          >
+            테스트: 유저로 로그인
+          </Button>
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={handleTestLogout}
+            className="h-12 w-full border-gray-400 text-gray-500 hover:bg-gray-50"
+          >
+            테스트: 비로그인 상태로
+          </Button>
+          
+          {/* Admin Login Toggle */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowAdminForm(!showAdminForm)}
+            className="w-full text-xs text-muted-foreground"
+          >
+            {showAdminForm ? "관리자 로그인 닫기" : "관리자 로그인"}
+          </Button>
+          
+          {showAdminForm && (
+            <div className="space-y-3 rounded-lg border border-muted p-4">
+              <input
+                type="text"
+                placeholder="아이디"
+                value={adminId}
+                onChange={(e) => setAdminId(e.target.value)}
+                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              />
+              <input
+                type="password"
+                placeholder="비밀번호"
+                value={adminPw}
+                onChange={(e) => setAdminPw(e.target.value)}
+                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              />
+              {adminError && (
+                <p className="text-xs text-destructive">{adminError}</p>
+              )}
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={handleAdminLogin}
+                className="h-10 w-full"
+              >
+                관리자 로그인
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
     </main>
   )

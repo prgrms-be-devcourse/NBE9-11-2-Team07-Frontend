@@ -1,22 +1,15 @@
+"use client"
+
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
+import { useAuth } from "@/contexts/AuthContext"
 
-interface LandingPageProps {
-  isLoggedIn?: boolean
-  isWaitingRoom?: boolean
-}
-
-export default function LandingPage({
-  isLoggedIn = false,
-  isWaitingRoom = false,
-}: LandingPageProps) {
+export default function LandingPage() {
+  const { isLoggedIn } = useAuth()
+  
   // Determine CTA link based on state
-  const getCtaHref = () => {
-    if (isWaitingRoom) return "/waiting"
-    if (isLoggedIn) return "/reservation"
-    return "/login"
-  }
+  const ctaHref = isLoggedIn ? "/reservation" : "/login"
 
   return (
     <main className="relative h-screen w-full">
@@ -39,7 +32,7 @@ export default function LandingPage({
           size="lg"
           className="h-12 bg-white/90 px-16 text-base font-medium text-foreground shadow-lg hover:bg-white"
         >
-          <Link href={getCtaHref()}>예약하기</Link>
+          <Link href={ctaHref}>예약하기</Link>
         </Button>
       </div>
     </main>

@@ -4,6 +4,7 @@ import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ChevronRight, ChevronDown } from "lucide-react"
+import { useAuth } from "@/contexts/AuthContext"
 
 // Time slots
 const LUNCH_TIMES = ["12:00", "12:30", "13:00", "13:30", "14:00"]
@@ -206,8 +207,7 @@ export default function ReservationPage() {
 
   const availableDates = useMemo(() => getAvailableDates(), [])
 
-  // TODO: Replace with actual auth state
-  const isLoggedIn = false
+  const { isLoggedIn } = useAuth()
 
   const guestOptions = Array.from({ length: 8 }, (_, i) => ({
     value: String(i + 1),
@@ -220,8 +220,6 @@ export default function ReservationPage() {
   }))
 
   const isFormValid = Boolean(guests && selectedDate && selectedTime)
-  
-  console.log("[v0] Form state:", { guests, selectedDate, selectedTime, isFormValid })
   
   // Get display date
   const displayDate = selectedDate 

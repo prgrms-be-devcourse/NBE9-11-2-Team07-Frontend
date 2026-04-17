@@ -2,17 +2,15 @@
 
 import { usePathname } from "next/navigation"
 import { Header } from "@/components/layout/Header"
+import { AuthProvider, useAuth } from "@/contexts/AuthContext"
 
-export default function UserLayout({
+function UserLayoutContent({
   children,
 }: {
   children: React.ReactNode
 }) {
   const pathname = usePathname()
-  
-  // TODO: Replace with actual auth state
-  const isLoggedIn = false
-  const isWaitingRoom = false
+  const { isLoggedIn } = useAuth()
   
   // Landing page has transparent header
   const isLandingPage = pathname === "/"
@@ -22,5 +20,17 @@ export default function UserLayout({
       <Header isLoggedIn={isLoggedIn} transparent={isLandingPage} />
       {children}
     </div>
+  )
+}
+
+export default function UserLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <AuthProvider>
+      <UserLayoutContent>{children}</UserLayoutContent>
+    </AuthProvider>
   )
 }
