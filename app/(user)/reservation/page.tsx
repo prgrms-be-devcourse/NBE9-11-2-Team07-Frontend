@@ -203,7 +203,6 @@ export default function ReservationPage() {
   const [guests, setGuests] = useState<string | null>(null)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [selectedTime, setSelectedTime] = useState<string | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const availableDates = useMemo(() => getAvailableDates(), [])
 
@@ -226,7 +225,7 @@ export default function ReservationPage() {
     ? new Date(selectedDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })
     : "Today"
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!isFormValid) return
 
     if (!isLoggedIn) {
@@ -234,26 +233,8 @@ export default function ReservationPage() {
       return
     }
 
-    setIsSubmitting(true)
-    try {
-      const response = await fetch("/api/reservations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          guests: Number(guests),
-          date: selectedDate,
-          time: selectedTime,
-        }),
-      })
-
-      if (response.ok) {
-        router.push("/waiting")
-      }
-    } catch (error) {
-      console.error("Reservation failed:", error)
-    } finally {
-      setIsSubmitting(false)
-    }
+    // TODO: POST /api/reservations 연동 예정
+    router.push("/waiting")
   }
 
   // Calculate next month's opening date message
