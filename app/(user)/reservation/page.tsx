@@ -221,6 +221,8 @@ export default function ReservationPage() {
 
   const isFormValid = Boolean(guests && selectedDate && selectedTime)
   
+  console.log("[v0] Form state:", { guests, selectedDate, selectedTime, isFormValid })
+  
   // Get display date
   const displayDate = selectedDate 
     ? new Date(selectedDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })
