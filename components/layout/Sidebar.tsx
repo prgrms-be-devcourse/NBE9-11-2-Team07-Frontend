@@ -14,7 +14,7 @@ interface SidebarProps {
 }
 
 const defaultItems: SidebarItem[] = [
-  { label: "나의 프로필", href: "/mypage" },
+  { label: "나의 프로필", href: "/mypage/profile" },
   { label: "나의 예약", href: "/mypage/reservations" },
   { label: "고객 센터", href: "/mypage/support" },
 ]
