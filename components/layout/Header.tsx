@@ -1,12 +1,14 @@
 "use client"
 
 import Link from "next/link"
+import { cn } from "@/lib/utils"
 
 interface HeaderProps {
   isLoggedIn?: boolean
+  transparent?: boolean
 }
 
-export function Header({ isLoggedIn = false }: HeaderProps) {
+export function Header({ isLoggedIn = false, transparent = false }: HeaderProps) {
   const navItems = [
     { label: "홈", href: "/", disabled: false },
     { label: "메뉴", href: "#", disabled: true },
@@ -15,7 +17,12 @@ export function Header({ isLoggedIn = false }: HeaderProps) {
   ]
 
   return (
-    <header className="bg-header text-header-foreground">
+    <header
+      className={cn(
+        "text-header-foreground",
+        transparent ? "absolute left-0 right-0 top-0 z-50 bg-transparent" : "bg-header"
+      )}
+    >
       <div className="flex h-14 items-center justify-between px-6">
         {/* Logo */}
         <Link href="/" className="text-lg font-medium tracking-wide">
