@@ -1,425 +1,257 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { formatDateKorean, formatTimeKorean, type Reservation } from "@/types"
-import { ChevronRight, ChevronDown } from "lucide-react"
+import {
+  Dialog, DialogContent, DialogDescription,
+  DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
+import { getMyReservations, updateReservation, cancelReservation, type Reservation } from "@/lib/reservations"
 
-// Sample data - replace with actual data fetching
-const sampleReservation: Reservation | null = {
-  id: "1",
-  date: "2026-05-25",
-  time: "19:00",
-  guests: 2,
-  status: "confirmed",
-  userName: "홍길동",
-  phone: "010-1234-5678",
+type ModalType = "change" | "changeSuccess" | "cancel" | "cancelSuccess" | null
+
+const timeOptions = ["12:00", "12:30", "13:00", "13:30", "14:00", "17:00", "17:30", "18:00", "18:30", "19:00", "19:30", "20:00"]
+
+function formatDateKorean(dateStr: string) {
+  const [year, month, day] = dateStr.split("-")
+  return `${year}년 ${month}월 ${day}일`
 }
 
-// Set to null to show empty state
-// const sampleReservation: Reservation | null = null
+function formatTimeKorean(time: string) {
+  const [h, m] = time.split(":").map(Number)
+  const period = h >= 12 ? "오후" : "오전"
+  const hour = h > 12 ? h - 12 : h
+  return `${period} ${hour}시${m > 0 ? ` ${m}분` : ""}`
+}
 
-type ModalType = "modify" | "cancel" | "cancelSuccess" | "modifySuccess" | null
-
-// Calendar Component
-function Calendar({
-  selectedDate,
-  onSelectDate,
-  currentMonth,
-  onNextMonth,
-}: {
-  selectedDate: Date | null
-  onSelectDate: (date: Date) => void
-  currentMonth: Date
-  onNextMonth: () => void
-}) {
-  const year = currentMonth.getFullYear()
-  const month = currentMonth.getMonth()
-
-  const firstDay = new Date(year, month, 1)
-  const lastDay = new Date(year, month + 1, 0)
-  const startingDayOfWeek = firstDay.getDay()
-  const daysInMonth = lastDay.getDate()
-
+function getAvailableDates(): string[] {
   const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
-  // Only Wednesdays (3) and Thursdays (4) are available
-  const isAvailable = (date: Date) => {
-    const dayOfWeek = date.getDay()
-    return (dayOfWeek === 3 || dayOfWeek === 4) && date >= today
+  const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1)
+  const lastDay = new Date(nextMonth.getFullYear(), nextMonth.getMonth() + 1, 0).getDate()
+  const availableDates: string[] = []
+  for (let day = 1; day <= lastDay; day++) {
+    availableDates.push(
+      `${nextMonth.getFullYear()}-${String(nextMonth.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
+    )
   }
-
-  const days = []
-  for (let i = 0; i < startingDayOfWeek; i++) {
-    days.push(null)
-  }
-  for (let i = 1; i <= daysInMonth; i++) {
-    days.push(new Date(year, month, i))
-  }
-
-  const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ]
-
-  return (
-    <div className="w-full rounded-lg border border-border p-4">
-      <div className="mb-4 flex items-center justify-center">
-        <span className="text-lg font-medium">
-          {monthNames[month]} {year}
-        </span>
-        <button onClick={onNextMonth} className="ml-auto p-1">
-          <ChevronRight className="h-5 w-5" />
-        </button>
-      </div>
-
-      <div className="grid grid-cols-7 gap-1 text-center text-sm text-muted-foreground">
-        {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
-          <div key={day} className="py-2">
-            {day}
-          </div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-7 gap-1 text-center">
-        {days.map((date, index) => {
-          if (!date) {
-            return <div key={index} className="py-2" />
-          }
-
-          const available = isAvailable(date)
-          const isSelected =
-            selectedDate &&
-            date.toDateString() === selectedDate.toDateString()
-
-          return (
-            <button
-              key={index}
-              onClick={() => available && onSelectDate(date)}
-              disabled={!available}
-              className={`rounded-full py-2 text-sm ${
-                isSelected
-                  ? "border-2 border-destructive text-destructive"
-                  : available
-                    ? "text-destructive hover:bg-muted"
-                    : "text-muted-foreground/40 line-through"
-              }`}
-            >
-              {date.getDate()}
-            </button>
-          )
-        })}
-      </div>
-    </div>
-  )
+  return availableDates
 }
 
-// Dropdown Component
-function Dropdown({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string
-  value: string
-  options: { value: string; label: string }[]
-  onChange: (value: string) => void
-}) {
-  const [isOpen, setIsOpen] = useState(false)
-
-  return (
-    <div className="relative flex-1">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex w-full items-center justify-between border-b border-border px-2 py-2 text-left"
-      >
-        <div>
-          <span className="block text-xs text-muted-foreground">{label}</span>
-          <span className="text-sm">{value}</span>
-        </div>
-        <ChevronDown className="h-4 w-4 text-muted-foreground" />
-      </button>
-      {isOpen && (
-        <div className="absolute left-0 right-0 top-full z-10 max-h-48 overflow-y-auto rounded-b-lg border border-t-0 border-border bg-background shadow-lg">
-          {options.map((option) => (
-            <button
-              key={option.value}
-              onClick={() => {
-                onChange(option.value)
-                setIsOpen(false)
-              }}
-              className="block w-full px-4 py-2 text-left text-sm hover:bg-muted"
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// Modal Component
-function Modal({
-  isOpen,
-  onClose,
-  children,
-}: {
-  isOpen: boolean
-  onClose: () => void
-  children: React.ReactNode
-}) {
-  if (!isOpen) return null
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50">
-      <div
-        className="mx-4 w-full max-w-lg rounded-lg bg-background p-6 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {children}
-      </div>
-    </div>
-  )
+function getStatusLabel(status: string) {
+  switch (status) {
+    case "CONFIRMED": return "확정"
+    case "PENDING": return "대기중"
+    case "CANCELED": return "취소됨"
+    case "CANCEL_PENDING": return "취소 대기중"
+    default: return status
+  }
 }
 
 export default function MyReservationsPage() {
-  const [reservation, setReservation] = useState<Reservation | null>(
-    sampleReservation
-  )
+  const [isLoading, setIsLoading] = useState(true)
+  const [reservations, setReservations] = useState<Reservation[]>([])
+  const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null)
   const [modalType, setModalType] = useState<ModalType>(null)
+  const [errorMsg, setErrorMsg] = useState("")
 
-  // Modify form state
-  const [selectedGuests, setSelectedGuests] = useState("2")
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
-  const [selectedTime, setSelectedTime] = useState("")
-  const [currentMonth, setCurrentMonth] = useState(() => {
-    const now = new Date()
-    return new Date(now.getFullYear(), now.getMonth() + 1, 1)
-  })
+  const [editDate, setEditDate] = useState("")
+  const [editTime, setEditTime] = useState("")
+  const [editGuests, setEditGuests] = useState("2")
 
-  const guestOptions = Array.from({ length: 8 }, (_, i) => ({
-    value: String(i + 1),
-    label: `${i + 1} Guests`,
-  }))
+  const guestOptions = useMemo(() => Array.from({ length: 8 }, (_, i) => String(i + 1)), [])
+  const availableDates = useMemo(() => getAvailableDates(), [])
 
-  const timeOptions = [
-    { value: "", label: "All Day" },
-    { value: "12:00", label: "오후 12시" },
-    { value: "13:00", label: "오후 1시" },
-    { value: "14:00", label: "오후 2시" },
-    { value: "17:00", label: "오후 5시" },
-    { value: "18:00", label: "오후 6시" },
-    { value: "19:00", label: "오후 7시" },
-    { value: "20:00", label: "오후 8시" },
-  ]
-
-  const handleModify = () => {
-    // Reset form with current reservation values
-    if (reservation) {
-      setSelectedGuests(String(reservation.guests))
-      setSelectedDate(new Date(reservation.date))
-      setSelectedTime(reservation.time)
-    }
-    setModalType("modify")
-  }
-
-  const handleConfirmModify = () => {
-    // Here you would call API to modify reservation
-    if (reservation && selectedDate) {
-      setReservation({
-        ...reservation,
-        date: selectedDate.toISOString().split("T")[0],
-        time: selectedTime || reservation.time,
-        guests: parseInt(selectedGuests),
+  useEffect(() => {
+    getMyReservations()
+      .then((res) => {
+        setReservations(res.data)
       })
-    }
-    setModalType("modifySuccess")
+      .catch(() => setReservations([]))
+      .finally(() => setIsLoading(false))
+  }, [])
+
+  const openChangeModal = (reservation: Reservation) => {
+    setSelectedReservation(reservation)
+    setEditDate(reservation.date)
+    setEditTime(reservation.time)
+    setEditGuests(String(reservation.guestCount))
+    setErrorMsg("")
+    setModalType("change")
   }
 
-  const handleCancel = () => {
+  const openCancelModal = (reservation: Reservation) => {
+    setSelectedReservation(reservation)
     setModalType("cancel")
   }
 
-  const handleConfirmCancel = () => {
-    // Here you would call API to cancel reservation
-    setReservation(null)
-    setModalType("cancelSuccess")
+  const onConfirmChange = async () => {
+    if (!selectedReservation) return
+    try {
+      const res = await updateReservation(
+        selectedReservation.reservationId,
+        editDate,
+        editTime,
+        Number(editGuests)
+      )
+      setReservations((prev) =>
+        prev.map((r) => r.reservationId === selectedReservation.reservationId ? res.data : r)
+      )
+      setModalType("changeSuccess")
+    } catch (err: any) {
+      if (err?.error_code === "SLOT_UNAVAILABLE") {
+        setErrorMsg("선택하신 시간대가 마감되었습니다.")
+      } else {
+        setErrorMsg("예약 변경에 실패했습니다. 다시 시도해주세요.")
+      }
+    }
   }
 
-  const closeModal = () => {
-    setModalType(null)
-  }
-
-  // Empty state
-  if (!reservation) {
-    return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <p className="text-muted-foreground">현재 예약 사항이 없습니다.</p>
-      </div>
-    )
+  const onConfirmCancel = async () => {
+    if (!selectedReservation) return
+    try {
+      await cancelReservation(selectedReservation.reservationId)
+      setReservations((prev) =>
+        prev.map((r) => r.reservationId === selectedReservation.reservationId ? { ...r, status: "CANCELED" } : r)
+      )
+      setModalType("cancelSuccess")
+    } catch {
+      setModalType(null)
+    }
   }
 
   return (
-    <div>
+    <>
       <h1 className="mb-6 text-xl font-semibold">나의 예약</h1>
 
-      <Card className="max-w-2xl">
-        <CardContent className="flex items-center justify-between p-6">
-          <div className="space-y-1.5">
-            <p className="text-sm">
-              예약일 : {formatDateKorean(reservation.date)}
-            </p>
-            <p className="text-sm">
-              예약 시간 : {formatTimeKorean(reservation.time)}
-            </p>
-            <p className="text-sm">게스트 : {reservation.guests}명</p>
+      {isLoading && (
+        <div className="space-y-3 max-w-2xl">
+          {[...Array(3)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="space-y-3 p-6">
+                <Skeleton className="h-5 w-48" />
+                <Skeleton className="h-5 w-56" />
+                <Skeleton className="h-5 w-40" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {!isLoading && reservations.length === 0 && (
+        <div className="flex min-h-[320px] items-center justify-center rounded-md border border-dashed border-border">
+          <p className="text-muted-foreground">현재 예약 사항이 없습니다.</p>
+        </div>
+      )}
+
+      {!isLoading && reservations.length > 0 && (
+        <div className="space-y-3 max-w-2xl">
+          {reservations.map((reservation) => (
+            <Card key={reservation.reservationId}>
+              <CardContent className="flex items-center justify-between p-6">
+                <div className="space-y-1.5">
+                  <p className="text-sm">예약일: {formatDateKorean(reservation.date)}</p>
+                  <p className="text-sm">예약시간: {formatTimeKorean(reservation.time)}</p>
+                  <p className="text-sm">게스트 인원: {reservation.guestCount}명</p>
+                  <p className="text-sm">상태: {getStatusLabel(reservation.status)}</p>
+                </div>
+                {reservation.status === "CONFIRMED" && (
+                  <div className="flex flex-col gap-3">
+                    <Button onClick={() => openChangeModal(reservation)} variant="secondary" className="w-28 bg-muted text-muted-foreground hover:bg-muted/80">
+                      예약 변경
+                    </Button>
+                    <Button onClick={() => openCancelModal(reservation)} className="w-28 bg-destructive hover:bg-destructive/90" style={{ color: "white" }}>
+                      예약 취소
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <Dialog open={modalType === "change"} onOpenChange={(open) => !open && setModalType(null)}>
+        <DialogContent showCloseButton={false} className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>예약 변경</DialogTitle>
+            <DialogDescription>기존 예약값이 기본으로 설정되어 있습니다.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-2">
+              <Label>예약일</Label>
+              <Select value={editDate} onValueChange={setEditDate}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {availableDates.map((date) => (
+                    <SelectItem key={date} value={date}>{formatDateKorean(date)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>예약시간</Label>
+              <Select value={editTime} onValueChange={setEditTime}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {timeOptions.map((time) => (
+                    <SelectItem key={time} value={time}>{formatTimeKorean(time)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>게스트</Label>
+              <Select value={editGuests} onValueChange={setEditGuests}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {guestOptions.map((count) => (
+                    <SelectItem key={count} value={count}>{count}명</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+          {errorMsg && <p className="text-sm text-destructive">{errorMsg}</p>}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setModalType(null)}>닫기</Button>
+            <Button onClick={onConfirmChange}>예약변경하기</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-          <div className="flex flex-col gap-3">
-            <Button
-              onClick={handleModify}
-              variant="secondary"
-              className="w-28 bg-muted text-muted-foreground hover:bg-muted/80"
-            >
-              예약 변경
-            </Button>
-            <Button
-              onClick={handleCancel}
-              variant="outline"
-              className="w-28 border-destructive bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              예약 취소
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <Dialog open={modalType === "changeSuccess"} onOpenChange={(open) => !open && setModalType(null)}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle className="text-center">예약이 변경 되었습니다.</DialogTitle>
+          </DialogHeader>
+          <Button onClick={() => setModalType(null)}>확인</Button>
+        </DialogContent>
+      </Dialog>
 
-      {/* Modify Modal */}
-      <Modal isOpen={modalType === "modify"} onClose={closeModal}>
-        <div className="flex gap-2 border-b border-border pb-4">
-          <Dropdown
-            label="Guests"
-            value={`${selectedGuests} Guests`}
-            options={guestOptions}
-            onChange={setSelectedGuests}
-          />
-          <Dropdown
-            label="Date"
-            value={selectedDate ? "Selected" : "Today"}
-            options={[{ value: "today", label: "Today" }]}
-            onChange={() => {}}
-          />
-          <Dropdown
-            label="Time"
-            value={selectedTime ? formatTimeKorean(selectedTime) : "All Day"}
-            options={timeOptions}
-            onChange={setSelectedTime}
-          />
-        </div>
+      <Dialog open={modalType === "cancel"} onOpenChange={(open) => !open && setModalType(null)}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle className="text-center">정말 예약을 취소하시겠습니까?</DialogTitle>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setModalType(null)}>닫기</Button>
+            <Button variant="destructive" onClick={onConfirmCancel}>예약취소하기</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-        <div className="py-4">
-          <Calendar
-            selectedDate={selectedDate}
-            onSelectDate={setSelectedDate}
-            currentMonth={currentMonth}
-            onNextMonth={() =>
-              setCurrentMonth(
-                new Date(
-                  currentMonth.getFullYear(),
-                  currentMonth.getMonth() + 1,
-                  1
-                )
-              )
-            }
-          />
-        </div>
-
-        <div className="flex gap-4">
-          <Button
-            onClick={closeModal}
-            variant="outline"
-            className="flex-1 py-6"
-          >
-            닫기
-          </Button>
-          <Button
-            onClick={handleConfirmModify}
-            variant="secondary"
-            className="flex-1 bg-muted py-6 text-muted-foreground hover:bg-muted/80"
-            disabled={!selectedDate}
-          >
-            예약 변경하기
-          </Button>
-        </div>
-      </Modal>
-
-      {/* Cancel Confirmation Modal */}
-      <Modal isOpen={modalType === "cancel"} onClose={closeModal}>
-        <h2 className="mb-8 text-center text-xl font-semibold">
-          정말 예약을 취소하시겠습니까?
-        </h2>
-
-        <div className="flex gap-4">
-          <Button
-            onClick={closeModal}
-            variant="outline"
-            className="flex-1 py-6"
-          >
-            닫기
-          </Button>
-          <Button
-            onClick={handleConfirmCancel}
-            variant="secondary"
-            className="flex-1 bg-muted py-6 text-muted-foreground hover:bg-muted/80"
-          >
-            예약 취소하기
-          </Button>
-        </div>
-      </Modal>
-
-      {/* Cancel Success Modal */}
-      <Modal isOpen={modalType === "cancelSuccess"} onClose={closeModal}>
-        <h2 className="mb-8 text-center text-xl font-semibold">
-          예약이 취소 되었습니다.
-        </h2>
-
-        <Button
-          onClick={closeModal}
-          variant="secondary"
-          className="w-full bg-muted py-6 text-muted-foreground hover:bg-muted/80"
-        >
-          확인
-        </Button>
-      </Modal>
-
-      {/* Modify Success Modal */}
-      <Modal isOpen={modalType === "modifySuccess"} onClose={closeModal}>
-        <h2 className="mb-8 text-center text-xl font-semibold">
-          예약이 변경 되었습니다.
-        </h2>
-
-        <Button
-          onClick={closeModal}
-          variant="secondary"
-          className="w-full bg-muted py-6 text-muted-foreground hover:bg-muted/80"
-        >
-          확인
-        </Button>
-      </Modal>
-    </div>
+      <Dialog open={modalType === "cancelSuccess"} onOpenChange={(open) => !open && setModalType(null)}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle className="text-center">예약이 취소 되었습니다.</DialogTitle>
+          </DialogHeader>
+          <Button onClick={() => setModalType(null)}>확인</Button>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

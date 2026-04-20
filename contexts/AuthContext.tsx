@@ -1,13 +1,16 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import { getMe, logoutUser } from "@/lib/auth"
+import { getToken, removeToken } from "@/lib/api"
 
 type UserRole = "user" | "admin" | null
 
 interface AuthContextType {
   isLoggedIn: boolean
   userRole: UserRole
-  login: (role: UserRole) => void
+  userName: string | null
+  login: (role: UserRole, token?: string) => void
   logout: () => void
 }
 
@@ -16,31 +19,43 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userRole, setUserRole] = useState<UserRole>(null)
+  const [userName, setUserName] = useState<string | null>(null)
 
-  // Load auth state from localStorage on mount
   useEffect(() => {
-    const storedAuth = localStorage.getItem("test_auth")
-    if (storedAuth) {
-      const { isLoggedIn, userRole } = JSON.parse(storedAuth)
-      setIsLoggedIn(isLoggedIn)
-      setUserRole(userRole)
-    }
+    const token = getToken()
+    if (!token) return
+
+    getMe()
+      .then((res) => {
+        setIsLoggedIn(true)
+        const role = res.data.role
+        setUserRole(role === "ADMIN" || role === "ROLE_ADMIN" ? "admin" : "user")
+        setUserName(res.data.name)
+      })
+      .catch(() => {
+        removeToken()
+      })
   }, [])
 
-  const login = (role: UserRole) => {
+  const login = (role: UserRole, token?: string) => {
+    if (token) {
+      localStorage.setItem("accessToken", token)
+    }
     setIsLoggedIn(true)
     setUserRole(role)
-    localStorage.setItem("test_auth", JSON.stringify({ isLoggedIn: true, userRole: role }))
   }
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await logoutUser()
+    } catch {}
     setIsLoggedIn(false)
     setUserRole(null)
-    localStorage.removeItem("test_auth")
+    setUserName(null)
   }
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, userRole, login, logout }}>
+    <AuthContext.Provider value={{ isLoggedIn, userRole, userName, login, logout }}>
       {children}
     </AuthContext.Provider>
   )

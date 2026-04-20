@@ -7,26 +7,27 @@ import { useAuth } from "@/contexts/AuthContext"
 
 export default function LandingPage() {
   const { isLoggedIn } = useAuth()
-  
-  // Determine CTA link based on state
   const ctaHref = isLoggedIn ? "/reservation" : "/login"
 
   return (
     <main className="relative h-screen w-full">
-      {/* Hero Background Image */}
       <Image
-        src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-WnJgnzEgQp4IUxegnpyVZXC0LamPPT.png"
+        src="/restaurant-week-capa.jpg"
         alt="Gourmet steak dish"
         fill
-        className="object-cover"
+        className="object-cover object-top"
         priority
       />
       
-      {/* Dark overlay for better text contrast */}
-      <div className="absolute inset-0 bg-black/20" />
+      {/* 오버레이 더 어둡게 */}
+      <div className="absolute inset-0 bg-black/50" />
 
-      {/* CTA Button - positioned at bottom center */}
-      <div className="absolute inset-x-0 bottom-32 flex justify-center">
+      {/* 중앙에 식당 이름 + 예약하기 버튼 */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-6">
+        <div className="text-center text-white">
+          <h1 className="text-5xl font-bold tracking-widest">모주</h1>
+          <p className="mt-3 text-sm tracking-widest text-white/70">FINE DINING RESTAURANT</p>
+        </div>
         <Button
           asChild
           size="lg"

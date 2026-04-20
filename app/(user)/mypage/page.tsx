@@ -1,5 +1,14 @@
-import { redirect } from "next/navigation"
+"use client"
+
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 
 export default function MyPage() {
-  redirect("/mypage/profile")
+  const router = useRouter()
+
+  useEffect(() => {
+    router.replace("/mypage/reservations")
+  }, [router])
+
+  return null
 }

@@ -2,7 +2,6 @@
 
 import { usePathname } from "next/navigation"
 import { Header } from "@/components/layout/Header"
-import { AuthProvider, useAuth } from "@/contexts/AuthContext"
 
 function UserLayoutContent({
   children,
@@ -10,14 +9,14 @@ function UserLayoutContent({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
-  const { isLoggedIn } = useAuth()
-  
+
   // Landing page has transparent header
   const isLandingPage = pathname === "/"
+  const shouldHideHeader = pathname === "/waiting" || pathname === "/result/fail"
 
   return (
     <div className="min-h-screen bg-background">
-      <Header isLoggedIn={isLoggedIn} transparent={isLandingPage} />
+      {!shouldHideHeader ? <Header transparent={isLandingPage} /> : null}
       {children}
     </div>
   )
@@ -28,9 +27,5 @@ export default function UserLayout({
 }: {
   children: React.ReactNode
 }) {
-  return (
-    <AuthProvider>
-      <UserLayoutContent>{children}</UserLayoutContent>
-    </AuthProvider>
-  )
+  return <UserLayoutContent>{children}</UserLayoutContent>
 }

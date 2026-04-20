@@ -1,14 +1,24 @@
 "use client"
 
+import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 
 export default function ReservationFailPage() {
   const router = useRouter()
 
+  useEffect(() => {
+    const handlePopState = () => {
+      router.replace("/reservation")
+    }
+
+    window.addEventListener("popstate", handlePopState)
+    return () => window.removeEventListener("popstate", handlePopState)
+  }, [router])
+
   const handleRetry = () => {
-    // Navigate to reservation page and reset selection
-    router.push("/reservation")
+    sessionStorage.removeItem("reservation_selection")
+    router.replace("/reservation")
   }
 
   return (
