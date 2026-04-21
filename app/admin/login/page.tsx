@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { adminLogin } from "@/lib/auth"
 import { useAuth } from "@/contexts/AuthContext"
+import { Header } from "@/components/layout/Header"
 
 function AdminLoginForm() {
   const router = useRouter()
@@ -46,6 +47,8 @@ function AdminLoginForm() {
   }
 
   return (
+    <>
+    <Header />
     <main className="flex min-h-[calc(100vh-56px)] items-center justify-center px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
@@ -107,6 +110,7 @@ function AdminLoginForm() {
         </CardContent>
       </Card>
     </main>
+    </>
   )
 }
 

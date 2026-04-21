@@ -46,17 +46,6 @@ function LoginForm() {
         <GoogleIcon className="size-5" />
         <span>Google 계정으로 계속하기</span>
       </Button>
-      <div className="space-y-3 border-t border-dashed border-muted-foreground/30 pt-6">
-        <p className="text-center text-xs text-muted-foreground">개발용 테스트 버튼</p>
-        <Button variant="outline" size="lg" onClick={handleTestUserLogin}
-          className="h-12 w-full border-green-500 text-green-600 hover:bg-green-50">
-          테스트: 유저로 로그인
-        </Button>
-        <Button variant="outline" size="lg" onClick={handleTestLogout}
-          className="h-12 w-full border-gray-400 text-gray-500 hover:bg-gray-50">
-          테스트: 비로그인 상태로
-        </Button>
-      </div>
       <div className="pt-1 text-center">
         <Link href="/admin/login"
           className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground">

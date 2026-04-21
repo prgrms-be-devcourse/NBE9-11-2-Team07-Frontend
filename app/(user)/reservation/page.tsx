@@ -32,7 +32,7 @@ function Calendar({
     new Date(today.getFullYear(), today.getMonth() + 1, 1)
   )
 
-  const monthName = currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })
+  const monthName = currentMonth.toLocaleDateString("ko-KR", { month: "long", year: "numeric" })
   const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate()
   const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay()
 
@@ -65,7 +65,7 @@ function Calendar({
         </button>
       </div>
       <div className="mb-2 grid grid-cols-7 gap-1 text-center text-sm text-muted-foreground">
-        {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
+        {["일", "월", "화", "수", "목", "금", "토"].map((day) => (
           <div key={day} className="p-2">{day}</div>
         ))}
       </div>
@@ -177,7 +177,6 @@ export default function ReservationPage() {
 
         setAvailableDates(dates)
       } catch {
-        // 실패하면 다음달 전체 날짜 활성화
         const lastDay = new Date(nextMonth.getFullYear(), nextMonth.getMonth() + 1, 0).getDate()
         const dates = new Set<string>()
         for (let day = 1; day <= lastDay; day++) {
@@ -193,7 +192,7 @@ export default function ReservationPage() {
 
   const guestOptions = Array.from({ length: 8 }, (_, i) => ({
     value: String(i + 1),
-    label: `${i + 1} Guests`,
+    label: `${i + 1}명`,
   }))
 
   const timeOptions = [...LUNCH_TIMES, ...DINNER_TIMES].map((time) => ({
@@ -204,8 +203,8 @@ export default function ReservationPage() {
   const isFormValid = Boolean(guests && selectedDate && selectedTime)
 
   const displayDate = selectedDate
-    ? new Date(selectedDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })
-    : "Today"
+    ? new Date(selectedDate).toLocaleDateString("ko-KR", { month: "short", day: "numeric" })
+    : "날짜 선택"
 
   const handleSubmit = async () => {
     if (!isFormValid) return
@@ -234,18 +233,18 @@ export default function ReservationPage() {
     <main className="min-h-[calc(100vh-56px)] bg-background px-4 py-8">
       <div className="mx-auto max-w-xl space-y-6">
         <div className="grid grid-cols-3 gap-4">
-          <Dropdown label="Guests" value={guests} options={guestOptions} onSelect={setGuests} placeholder="2 Guests" />
+          <Dropdown label="인원" value={guests} options={guestOptions} onSelect={setGuests} placeholder="인원 선택" />
           <Dropdown
-            label="Date"
+            label="날짜"
             value={selectedDate}
             options={[
-              { value: "today", label: "Today" },
+              { value: "today", label: "날짜 선택" },
               ...(selectedDate ? [{ value: selectedDate, label: displayDate }] : [])
             ]}
             onSelect={() => {}}
             placeholder={displayDate}
           />
-          <Dropdown label="Time" value={selectedTime} options={timeOptions} onSelect={setSelectedTime} placeholder="시간 선택" />
+          <Dropdown label="시간" value={selectedTime} options={timeOptions} onSelect={setSelectedTime} placeholder="시간 선택" />
         </div>
 
         <Calendar selectedDate={selectedDate} onSelectDate={setSelectedDate} availableDates={availableDates} />

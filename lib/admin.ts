@@ -10,6 +10,7 @@ export interface AdminReservation {
   guestCount: number
   status: ReservationStatus
   createdAt: string
+  cancelReason?: string
 }
 
 export async function getAdminReservations(params?: {

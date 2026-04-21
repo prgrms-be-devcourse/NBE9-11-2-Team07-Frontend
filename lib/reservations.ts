@@ -82,7 +82,7 @@ export async function updateReservation(
 }
 
 // 예약 취소
-export async function cancelReservation(reservationId: string) {
+export async function cancelReservation(reservationId: string, cancelReason: string) {
   return apiRequest<{
     result_code: number
     data: {
@@ -92,5 +92,6 @@ export async function cancelReservation(reservationId: string) {
     }
   }>(`/api/v1/my/reservations/${reservationId}/cancel`, {
     method: "POST",
+    body: JSON.stringify({ cancelReason }),
   })
 }

@@ -24,6 +24,7 @@ export default function AdminDashboardPage() {
   const [timeFilter, setTimeFilter] = useState<keyof typeof timeFilterMap>("all")
   const [cancelTarget, setCancelTarget] = useState<AdminReservation | null>(null)
   const [isCanceling, setIsCanceling] = useState(false)
+  const [cancelReason, setCancelReason] = useState("")
 
   const fetchReservations = async () => {
     try {
@@ -53,23 +54,24 @@ export default function AdminDashboardPage() {
     })
   }, [rows, timeFilter])
 
-  const handleForceCancel = async () => {
-    if (!cancelTarget) return
-    try {
-      setIsCanceling(true)
-      await forceCancel(cancelTarget.reservationId)
-      setRows((prev) =>
-        prev.map((row) =>
-          row.reservationId === cancelTarget.reservationId ? { ...row, status: "CANCELED" } : row
-        )
+ const handleForceCancel = async () => {
+  if (!cancelTarget) return
+  try {
+    setIsCanceling(true)
+    await forceCancel(cancelTarget.reservationId, cancelReason)  // cancelReason 추가
+    setRows((prev) =>
+      prev.map((row) =>
+        row.reservationId === cancelTarget.reservationId ? { ...row, status: "CANCELED" } : row
       )
-      setCancelTarget(null)
-    } catch {
-      setCancelTarget(null)
-    } finally {
-      setIsCanceling(false)
-    }
+    )
+    setCancelTarget(null)
+    setCancelReason("")  // 초기화 추가
+  } catch {
+    setCancelTarget(null)
+  } finally {
+    setIsCanceling(false)
   }
+}
 
   const resetFilter = () => {
     setSelectedDate(undefined)
@@ -129,6 +131,7 @@ export default function AdminDashboardPage() {
                     <TableHead>인원</TableHead>
                     <TableHead>연락처</TableHead>
                     <TableHead>상태</TableHead>
+                    <TableHead>취소사유</TableHead>
                     <TableHead className="text-right">관리</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -145,6 +148,7 @@ export default function AdminDashboardPage() {
                           {row.status === "CONFIRMED" ? "확정" : "취소"}
                         </Badge>
                       </TableCell>
+                      <TableCell>{row.cancelReason ?? "-"}</TableCell>
                       <TableCell className="text-right">
                         <Button size="sm" variant="destructive" onClick={() => setCancelTarget(row)} disabled={row.status === "CANCELED"}>
                           강제취소
@@ -160,19 +164,31 @@ export default function AdminDashboardPage() {
       </div>
 
       <Dialog open={Boolean(cancelTarget)} onOpenChange={(open) => !open && setCancelTarget(null)}>
-        <DialogContent showCloseButton={false}>
-          <DialogHeader>
-            <DialogTitle>예약 취소</DialogTitle>
-            <DialogDescription>이 작업은 되돌릴 수 없습니다</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCancelTarget(null)} disabled={isCanceling}>취소</Button>
-            <Button variant="destructive" onClick={handleForceCancel} disabled={isCanceling}>
-              {isCanceling ? "처리 중..." : "확인"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+  <DialogContent showCloseButton={false}>
+    <DialogHeader>
+      <DialogTitle>예약 취소</DialogTitle>
+      <DialogDescription>이 작업은 되돌릴 수 없습니다</DialogDescription>
+    </DialogHeader>
+
+    {/* 추가 */}
+    <div className="space-y-2">
+      <label className="text-sm font-medium">취소 사유</label>
+      <input
+        className="w-full rounded border border-border px-3 py-2 text-sm"
+        placeholder="취소 사유를 입력하세요"
+        value={cancelReason}
+        onChange={(e) => setCancelReason(e.target.value)}
+      />
+    </div>
+
+    <DialogFooter>
+      <Button variant="outline" onClick={() => { setCancelTarget(null); setCancelReason("") }} disabled={isCanceling}>취소</Button>
+      <Button variant="destructive" onClick={handleForceCancel} disabled={isCanceling || !cancelReason}>
+        {isCanceling ? "처리 중..." : "확인"}
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+  </Dialog>
     </AdminShell>
   )
 }

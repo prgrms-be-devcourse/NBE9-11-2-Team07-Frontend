@@ -16,6 +16,8 @@ type ModalType = "change" | "changeSuccess" | "cancel" | "cancelSuccess" | null
 
 const timeOptions = ["12:00", "12:30", "13:00", "13:30", "14:00", "17:00", "17:30", "18:00", "18:30", "19:00", "19:30", "20:00"]
 
+
+
 function formatDateKorean(dateStr: string) {
   const [year, month, day] = dateStr.split("-")
   return `${year}년 ${month}월 ${day}일`
@@ -61,6 +63,7 @@ export default function MyReservationsPage() {
   const [editDate, setEditDate] = useState("")
   const [editTime, setEditTime] = useState("")
   const [editGuests, setEditGuests] = useState("2")
+  const [cancelReason, setCancelReason] = useState("")
 
   const guestOptions = useMemo(() => Array.from({ length: 8 }, (_, i) => String(i + 1)), [])
   const availableDates = useMemo(() => getAvailableDates(), [])
@@ -85,6 +88,7 @@ export default function MyReservationsPage() {
 
   const openCancelModal = (reservation: Reservation) => {
     setSelectedReservation(reservation)
+    setCancelReason("")
     setModalType("cancel")
   }
 
@@ -110,18 +114,18 @@ export default function MyReservationsPage() {
     }
   }
 
-  const onConfirmCancel = async () => {
-    if (!selectedReservation) return
-    try {
-      await cancelReservation(selectedReservation.reservationId)
-      setReservations((prev) =>
-        prev.map((r) => r.reservationId === selectedReservation.reservationId ? { ...r, status: "CANCELED" } : r)
-      )
-      setModalType("cancelSuccess")
-    } catch {
-      setModalType(null)
-    }
+ const onConfirmCancel = async () => {
+  if (!selectedReservation) return
+  try {
+    await cancelReservation(selectedReservation.reservationId, cancelReason)  // cancelReason 추가
+    setReservations((prev) =>
+      prev.map((r) => r.reservationId === selectedReservation.reservationId ? { ...r, status: "CANCELED" } : r)
+    )
+    setModalType("cancelSuccess")
+  } catch {
+    setModalType(null)
   }
+}
 
   return (
     <>
@@ -233,16 +237,26 @@ export default function MyReservationsPage() {
       </Dialog>
 
       <Dialog open={modalType === "cancel"} onOpenChange={(open) => !open && setModalType(null)}>
-        <DialogContent showCloseButton={false}>
-          <DialogHeader>
-            <DialogTitle className="text-center">정말 예약을 취소하시겠습니까?</DialogTitle>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setModalType(null)}>닫기</Button>
-            <Button variant="destructive" onClick={onConfirmCancel}>예약취소하기</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+  <DialogContent showCloseButton={false}>
+    <DialogHeader>
+      <DialogTitle className="text-center">정말 예약을 취소하시겠습니까?</DialogTitle>
+    </DialogHeader>
+    {/* 추가 */}
+    <div className="space-y-2">
+      <Label>취소 사유</Label>
+      <input
+        className="w-full rounded border border-border px-3 py-2 text-sm"
+        placeholder="취소 사유를 입력해주세요"
+        value={cancelReason}
+        onChange={(e) => setCancelReason(e.target.value)}
+      />
+    </div>
+    <DialogFooter>
+      <Button variant="outline" onClick={() => setModalType(null)}>닫기</Button>
+      <Button variant="destructive" onClick={onConfirmCancel} disabled={!cancelReason}>예약취소하기</Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
 
       <Dialog open={modalType === "cancelSuccess"} onOpenChange={(open) => !open && setModalType(null)}>
         <DialogContent showCloseButton={false}>
