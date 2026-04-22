@@ -8,6 +8,7 @@ type UserRole = "user" | "admin" | null
 
 interface AuthContextType {
   isLoggedIn: boolean
+  isAuthResolved: boolean
   userRole: UserRole
   userName: string | null
   login: (role: UserRole, token?: string) => void
@@ -18,12 +19,16 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [isAuthResolved, setIsAuthResolved] = useState(false)
   const [userRole, setUserRole] = useState<UserRole>(null)
   const [userName, setUserName] = useState<string | null>(null)
 
   useEffect(() => {
     const token = getToken()
-    if (!token) return
+    if (!token) {
+      setIsAuthResolved(true)
+      return
+    }
 
     getMe()
       .then((res) => {
@@ -35,6 +40,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .catch(() => {
         removeToken()
       })
+        .finally(() => {
+          setIsAuthResolved(true)
+        })
   }, [])
 
   const login = (role: UserRole, token?: string) => {
@@ -42,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem("accessToken", token)
     }
     setIsLoggedIn(true)
+    setIsAuthResolved(true)
     setUserRole(role)
   }
 
@@ -50,12 +59,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await logoutUser()
     } catch {}
     setIsLoggedIn(false)
+    setIsAuthResolved(true)
     setUserRole(null)
     setUserName(null)
   }
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, userRole, userName, login, logout }}>
+      <AuthContext.Provider value={{ isLoggedIn, isAuthResolved, userRole, userName, login, logout }}>
       {children}
     </AuthContext.Provider>
   )

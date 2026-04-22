@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/AuthContext"
+import { useEffect } from "react"
 
 interface AdminShellProps {
   children: React.ReactNode
@@ -18,13 +19,26 @@ const adminMenu = [
 export function AdminShell({ children }: AdminShellProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const { logout } = useAuth()
+  const { isLoggedIn, isAuthResolved, userRole, logout } = useAuth()
+  useEffect(() => {
+    if (!isAuthResolved) return
+
+    if (!isLoggedIn || userRole !== "admin") {
+      router.replace("/admin/login")
+    }
+  }, [isAuthResolved, isLoggedIn, router, userRole])
 
   const handleLogout = () => {
     logout()
     router.push("/")
   }
+  if (!isAuthResolved) {
+    return <div className="min-h-screen bg-background" />
+  }
 
+  if (!isLoggedIn || userRole !== "admin") {
+    return null
+  }
   return (
     <div className="min-h-screen bg-background">
       <header className="bg-[#1a1a1a] text-white">
