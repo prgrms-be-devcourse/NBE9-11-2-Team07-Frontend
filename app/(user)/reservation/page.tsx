@@ -28,6 +28,7 @@ function Calendar({
   availableDates: Set<string>
 }) {
   const today = new Date()
+  const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1)
   const [currentMonth, setCurrentMonth] = useState(
     new Date(today.getFullYear(), today.getMonth() + 1, 1)
   )
@@ -47,6 +48,15 @@ function Calendar({
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))
   }
 
+  const goToPrevMonth = () => {
+    const prev = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1)
+    if (prev >= nextMonth) {
+      setCurrentMonth(prev)
+    }
+  }
+
+  const isPrevDisabled = currentMonth <= nextMonth
+
   const isDateAvailable = (day: number) => {
     const dateStr = `${currentMonth.getFullYear()}-${(currentMonth.getMonth() + 1).toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`
     return availableDates.has(dateStr)
@@ -59,6 +69,13 @@ function Calendar({
   return (
     <div className="rounded-lg border border-border bg-background p-4">
       <div className="mb-4 flex items-center justify-center gap-2">
+        <button
+          onClick={goToPrevMonth}
+          disabled={isPrevDisabled}
+          className={`p-1 rounded ${isPrevDisabled ? "text-muted-foreground/30 cursor-not-allowed" : "hover:bg-accent"}`}
+        >
+          <ChevronRight className="size-5 rotate-180" />
+        </button>
         <span className="text-lg font-medium">{monthName}</span>
         <button onClick={goToNextMonth} className="p-1 hover:bg-accent rounded">
           <ChevronRight className="size-5" />

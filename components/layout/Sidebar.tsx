@@ -26,7 +26,7 @@ export function Sidebar({ items = defaultItems }: SidebarProps) {
     <aside className="w-48 border-r border-border py-8 pr-8">
       <nav className="flex flex-col gap-4">
         {items.map((item) => {
-          const isActive = pathname === item.href
+          const isActive = pathname === item.href || pathname.startsWith(item.href)
           return (
             <Link
               key={item.href}

@@ -33,13 +33,22 @@ export default function AdminHolidaysPage() {
     [holidaySet]
   )
 
-  const handleDateSelect = async (date?: Date) => {
+ const handleDateSelect = async (date?: Date) => {
     if (!date || date < today) return
     const key = toDateKey(date)
 
     if (!holidaySet.has(key)) {
       try {
-        await addHoliday(key)
+        const res = await addHoliday(key)
+        
+        // 예약 존재 시 경고 팝업
+        if (res.data.conflictingReservationCount > 0) {
+          const confirm = window.confirm(
+            `해당 날짜에 예약이 ${res.data.conflictingReservationCount}건 존재합니다. 휴무일로 설정하시겠습니까?`
+          )
+          if (!confirm) return
+        }
+        
         setHolidaySet((prev) => {
           const next = new Set(prev)
           next.add(key)

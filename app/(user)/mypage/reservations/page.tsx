@@ -16,8 +16,6 @@ type ModalType = "change" | "changeSuccess" | "cancel" | "cancelSuccess" | null
 
 const timeOptions = ["12:00", "12:30", "13:00", "13:30", "14:00", "17:00", "17:30", "18:00", "18:30", "19:00", "19:30", "20:00"]
 
-
-
 function formatDateKorean(dateStr: string) {
   const [year, month, day] = dateStr.split("-")
   return `${year}년 ${month}월 ${day}일`
@@ -41,6 +39,16 @@ function getAvailableDates(): string[] {
     )
   }
   return availableDates
+}
+
+function getCancelReasonLabel(reason: string) {
+  switch (reason) {
+    case "ADMIN_CANCEL": return "관리자에 의해 취소됨"
+    case "LATE_CANCEL": return "24시간 이내 취소 (본인)"
+    case "LOCK_ACQUIRE_FAIL": return "시스템 오류로 취소"
+    case "RESERVATION_FAILED": return "재고 부족으로 취소"
+    default: return `본인 취소: ${reason}`
+  }
 }
 
 function getStatusLabel(status: string) {
@@ -80,7 +88,7 @@ export default function MyReservationsPage() {
   const openChangeModal = (reservation: Reservation) => {
     setSelectedReservation(reservation)
     setEditDate(reservation.date)
-    setEditTime(reservation.time)
+    setEditTime(reservation.time.slice(0, 5))  // "13:30:00" → "13:30"
     setEditGuests(String(reservation.guestCount))
     setErrorMsg("")
     setModalType("change")
@@ -94,6 +102,17 @@ export default function MyReservationsPage() {
 
   const onConfirmChange = async () => {
     if (!selectedReservation) return
+
+    // 기존 값과 동일하면 안내
+    if (
+      editDate === selectedReservation.date &&
+      editTime === selectedReservation.time.slice(0, 5) &&
+      Number(editGuests) === selectedReservation.guestCount
+    ) {
+      setErrorMsg("변경사항이 없습니다.")
+      return
+    }
+
     try {
       const res = await updateReservation(
         selectedReservation.reservationId,
@@ -114,18 +133,18 @@ export default function MyReservationsPage() {
     }
   }
 
- const onConfirmCancel = async () => {
-  if (!selectedReservation) return
-  try {
-    await cancelReservation(selectedReservation.reservationId, cancelReason)  // cancelReason 추가
-    setReservations((prev) =>
-      prev.map((r) => r.reservationId === selectedReservation.reservationId ? { ...r, status: "CANCELED" } : r)
-    )
-    setModalType("cancelSuccess")
-  } catch {
-    setModalType(null)
+  const onConfirmCancel = async () => {
+    if (!selectedReservation) return
+    try {
+      await cancelReservation(selectedReservation.reservationId, cancelReason)
+      setReservations((prev) =>
+        prev.map((r) => r.reservationId === selectedReservation.reservationId ? { ...r, status: "CANCELED" } : r)
+      )
+      setModalType("cancelSuccess")
+    } catch {
+      setModalType(null)
+    }
   }
-}
 
   return (
     <>
@@ -171,6 +190,11 @@ export default function MyReservationsPage() {
                       예약 취소
                     </Button>
                   </div>
+                )}
+                {reservation.status === "CANCELED" && reservation.cancelReason && (
+                  <p className="text-sm text-muted-foreground">
+                    취소 사유: {getCancelReasonLabel(reservation.cancelReason)}
+                  </p>
                 )}
               </CardContent>
             </Card>
@@ -237,26 +261,25 @@ export default function MyReservationsPage() {
       </Dialog>
 
       <Dialog open={modalType === "cancel"} onOpenChange={(open) => !open && setModalType(null)}>
-  <DialogContent showCloseButton={false}>
-    <DialogHeader>
-      <DialogTitle className="text-center">정말 예약을 취소하시겠습니까?</DialogTitle>
-    </DialogHeader>
-    {/* 추가 */}
-    <div className="space-y-2">
-      <Label>취소 사유</Label>
-      <input
-        className="w-full rounded border border-border px-3 py-2 text-sm"
-        placeholder="취소 사유를 입력해주세요"
-        value={cancelReason}
-        onChange={(e) => setCancelReason(e.target.value)}
-      />
-    </div>
-    <DialogFooter>
-      <Button variant="outline" onClick={() => setModalType(null)}>닫기</Button>
-      <Button variant="destructive" onClick={onConfirmCancel} disabled={!cancelReason}>예약취소하기</Button>
-    </DialogFooter>
-  </DialogContent>
-</Dialog>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle className="text-center">정말 예약을 취소하시겠습니까?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>취소 사유</Label>
+            <input
+              className="w-full rounded border border-border px-3 py-2 text-sm"
+              placeholder="취소 사유를 입력해주세요"
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setModalType(null)}>닫기</Button>
+            <Button variant="destructive" onClick={onConfirmCancel} disabled={!cancelReason}>예약취소하기</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={modalType === "cancelSuccess"} onOpenChange={(open) => !open && setModalType(null)}>
         <DialogContent showCloseButton={false}>
